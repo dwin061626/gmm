@@ -1,17 +1,61 @@
 package com.scc;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
-    static void main() {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        IO.println(String.format("Hello and welcome!"));
+import com.scc.dao.UserDao;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            IO.println("i = " + i);
+import java.util.Scanner;
+
+public class Main {
+    private static final Scanner sc = new Scanner (System.in);
+    private static final UserDao userDao = new UserDao();
+    public static void main(String[] args){
+
+        System.out.println("\n===========================================");
+        System.out.println(" GYM MEMBERSHIP MANAGEMENT ");
+        System.out.println("===========================================");
+        System.out.println("1. Login");
+        System.out.println("2. Register");
+        System.out.println("3. Exit");
+        System.out.print("Choose an option: ");
+        String choice = sc.nextLine();
+
+    switch(choice){
+
+        case "1":
+            break;
+        case "2":
+            System.out.print("Enter the new username: ");
+            String user = sc.nextLine();
+            System.out.print("Enter the new email: ");
+            String email = sc.nextLine();
+            System.out.print("Enter the password: ");
+            String password = sc.nextLine();
+
+            System.out.print("Select Role [1] FRONT DESK | [2] ADMIN: ");
+            int roleChoice = sc.nextInt();
+            String role;
+        switch (roleChoice){
+
+            case 1:
+                role = "FRONT DESK";
+                break;
+            case 2:
+                role = "CUSTOMER";
+                break;
+            default:
+                role = null;
         }
+        if(role != null){
+            userDao.registerUser(user, email, password, role);
+
+        }else {
+
+            System.out.println("Invalid role selection");
+        }
+
+            break;
+
+
+    }
+
     }
 }
