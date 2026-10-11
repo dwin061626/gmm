@@ -30,22 +30,25 @@ public class Main {
             System.out.print("Enter the password: ");
             String password = sc.nextLine();
 
-            System.out.print("Select Role [1] FRONT DESK | [2] ADMIN: ");
+            System.out.print("Select Role [1] FRONT DESK | [2] ADMIN | [3] CUSTOMER: ");
             int roleChoice = sc.nextInt();
-            String role;
+            String roles;
         switch (roleChoice){
 
             case 1:
-                role = "FRONT DESK";
+                roles = "FRONT DESK";
                 break;
             case 2:
-                role = "CUSTOMER";
+                roles = "ADMIN";
+                break;
+            case 3:
+                roles = "CUSTOMER";
                 break;
             default:
-                role = null;
+                roles = null;
         }
-        if(role != null){
-            userDao.registerUser(user, email, password, role);
+        if(roles != null){
+            userDao.registerUser(user, email, password, roles);
 
         }else {
 
