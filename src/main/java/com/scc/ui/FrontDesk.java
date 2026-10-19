@@ -217,31 +217,30 @@ public class FrontDesk {
             int choice = readInt();
 
             switch (choice) {
-                case 1 -> {
+                case 1:
                     clearScreen();
                     System.out.println("=== MEMBER LIST ===\n");
                     printMembers();
                     pause();
-                }
-                case 2 -> {
+                    break;
+                case 2:
                     processPayment();
                     pause();
-                }
-                case 3 -> {
+                    break;
+                case 3:
                     viewPayments();
                     pause();
-                }
-                case 4 -> {
+                    break;
+                case 4:
                     incomeSummary();
                     pause();
-                }
-                case 5 -> {
+                    break;
+                case 5:
                     return;
-                }
-                default -> {
+                default:
                     System.out.println("\nInvalid choice!");
                     pause();
-                }
+                    break;
             }
         }
     }

@@ -69,12 +69,16 @@ public class Admin {
         System.out.println("2. ADMIN");
         System.out.println("3. CUSTOMER");
         System.out.print("Choice: ");
-        return switch (readInt()) {
-            case 1 -> "FRONT DESK";
-            case 2 -> "ADMIN";
-            case 3 -> "CUSTOMER";
-            default -> null;
-        };
+        switch (readInt()) {
+            case 1:
+                return "FRONT DESK";
+            case 2:
+                return "ADMIN";
+            case 3:
+                return "CUSTOMER";
+            default:
+                return null;
+        }
     }
 
     // Returns the chosen status, or null if the choice is invalid
@@ -83,11 +87,14 @@ public class Admin {
         System.out.println("1. ACTIVE");
         System.out.println("2. PENDING");
         System.out.print("Choice: ");
-        return switch (readInt()) {
-            case 1 -> "ACTIVE";
-            case 2 -> "PENDING";
-            default -> null;
-        };
+        switch (readInt()) {
+            case 1:
+                return "ACTIVE";
+            case 2:
+                return "PENDING";
+            default:
+                return null;
+        }
     }
 
     //////////////////////////////////////////////////////////////
@@ -230,31 +237,30 @@ public class Admin {
             System.out.print("\nChoice: ");
 
             switch (readInt()) {
-                case 1 -> {
+                case 1:
                     createUser();
                     pause();
-                }
-                case 2 -> {
+                    break;
+                case 2:
                     clearScreen();
                     System.out.println("=== USER LIST ===\n");
                     printUsers();
                     pause();
-                }
-                case 3 -> {
+                    break;
+                case 3:
                     updateUser();
                     pause();
-                }
-                case 4 -> {
+                    break;
+                case 4:
                     deleteUser(loggedInUser);
                     pause();
-                }
-                case 5 -> {
+                    break;
+                case 5:
                     return;
-                }
-                default -> {
+                default:
                     System.out.println("\nInvalid choice!");
                     pause();
-                }
+                    break;
             }
         }
     }
@@ -295,15 +301,18 @@ public class Admin {
             System.out.print("\nChoice: ");
 
             switch (readInt()) {
-                case 1 -> manageUsers(loggedInUser);
-                case 2 -> manageSubscription();
-                case 3 -> {
+                case 1:
+                    manageUsers(loggedInUser);
+                    break;
+                case 2:
+                    manageSubscription();
+                    break;
+                case 3:
                     return;
-                }
-                default -> {
+                default:
                     System.out.println("\nInvalid choice!");
                     pause();
-                }
+                    break;
             }
         }
     }

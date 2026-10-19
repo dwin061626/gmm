@@ -158,21 +158,20 @@ public class Customer {
             System.out.print("\nChoice: ");
 
             switch (readInt()) {
-                case 1 -> {
+                case 1:
                     viewSubscription(loggedInUser);
                     pause();
-                }
-                case 2 -> {
+                    break;
+                case 2:
                     applySubscription(loggedInUser);
                     pause();
-                }
-                case 3 -> {
+                    break;
+                case 3:
                     return;
-                }
-                default -> {
+                default:
                     System.out.println("\nInvalid choice!");
                     pause();
-                }
+                    break;
             }
         }
     }

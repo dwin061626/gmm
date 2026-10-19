@@ -1,5 +1,6 @@
 package com.scc;
 
+import com.scc.dao.DatabaseConnection;
 import com.scc.dao.UserDao;
 import com.scc.model.User;
 import com.scc.ui.Admin;
@@ -13,6 +14,9 @@ public class Main {
     private static final UserDao userDao = new UserDao();
 
     public static void main(String[] args) {
+        // Shows which database file is used and makes sure the users table exists
+        DatabaseConnection.initialize();
+
         boolean running = true;
 
         while (running) {
@@ -26,13 +30,19 @@ public class Main {
             String choice = sc.nextLine().trim();
 
             switch (choice) {
-                case "1" -> login();
-                case "2" -> register();
-                case "3" -> {
+                case "1":
+                    login();
+                    break;
+                case "2":
+                    register();
+                    break;
+                case "3":
                     System.out.println("Goodbye!");
                     running = false;
-                }
-                default -> System.out.println("Invalid option. Please choose 1, 2 or 3.");
+                    break;
+                default:
+                    System.out.println("Invalid option. Please choose 1, 2 or 3.");
+                    break;
             }
         }
     }
@@ -65,10 +75,18 @@ public class Main {
 
         // Send each role to its own dashboard
         switch (role) {
-            case "ADMIN" -> new Admin(sc).showMenu(user);
-            case "FRONT DESK" -> new FrontDesk(sc).showMenu(user);
-            case "CUSTOMER" -> new Customer(sc).showMenu(user);
-            default -> System.out.println("\nUnknown role: " + user.roles());
+            case "ADMIN":
+                new Admin(sc).showMenu(user);
+                break;
+            case "FRONT DESK":
+                new FrontDesk(sc).showMenu(user);
+                break;
+            case "CUSTOMER":
+                new Customer(sc).showMenu(user);
+                break;
+            default:
+                System.out.println("\nUnknown role: " + user.roles());
+                break;
         }
     }
 
@@ -98,10 +116,18 @@ public class Main {
         System.out.print("Select Role [1] FRONT DESK | [2] ADMIN | [3] CUSTOMER: ");
         String roles;
         switch (sc.nextLine().trim()) {
-            case "1" -> roles = "FRONT DESK";
-            case "2" -> roles = "ADMIN";
-            case "3" -> roles = "CUSTOMER";
-            default -> roles = null;
+            case "1":
+                roles = "FRONT DESK";
+                break;
+            case "2":
+                roles = "ADMIN";
+                break;
+            case "3":
+                roles = "CUSTOMER";
+                break;
+            default:
+                roles = null;
+                break;
         }
 
         if (roles == null) {
