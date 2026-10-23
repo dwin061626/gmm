@@ -7,313 +7,216 @@ import java.util.Scanner;
 
 public class Admin {
 
-    private final Scanner sc;
-    private final UserDao userDao = new UserDao();
+    private final Scanner scanner;
+    private final UserDao userDao;
 
-    // Share the Scanner from Main so two Scanners don't fight over System.in
-    public Admin(Scanner sc) {
-        this.sc = sc;
+    public Admin(Scanner scanner, UserDao userDao) {
+        this.scanner = scanner;
+        this.userDao = userDao;
     }
 
-    //////////////////////////////////////////////////////////////
-    // HELPERS
-    //////////////////////////////////////////////////////////////
+    public void display(User admin) {
+        boolean loggedIn = true;
+        while (loggedIn) {
+            System.out.println("\n=========================================");
+            System.out.println("            ADMIN DASHBOARD");
+            System.out.println("=========================================");
+            System.out.println("1. View All Users");
+            System.out.println("2. View Pending User Approvals");
+            System.out.println("3. Approve User Registration");
+            System.out.println("4. Add New User");
+            System.out.println("5. Update User");
+            System.out.println("6. Delete User Account");
+            System.out.println("7. Logout");
+            System.out.print("Choose an option (1-7): ");
 
-    // Safe integer input (returns -1 on invalid input)
-    private int readInt() {
-        try {
-            return Integer.parseInt(sc.nextLine().trim());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
+            String choice = scanner.nextLine().trim();
 
-    private String readLine(String prompt) {
-        System.out.print(prompt);
-        return sc.nextLine().trim();
-    }
-
-    private void clearScreen() {
-        try {
-            if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
-            } else {
-                System.out.print("\033[H\033[2J");
-                System.out.flush();
+            switch (choice) {
+                case "1":
+                    viewAllUsers();
+                    break;
+                case "2":
+                    viewPendingUsers();
+                    break;
+                case "3":
+                    approveUser();
+                    break;
+                case "4":
+                    addUser();
+                    break;
+                case "5":
+                    updateUser();
+                    break;
+                case "6":
+                    deleteUser(admin);
+                    break;
+                case "7":
+                    loggedIn = false;
+                    break;
+                default:
+                    System.out.println("Invalid option. Please choose 1-7.");
             }
-        } catch (Exception ignored) {
         }
     }
 
-    private void pause() {
-        System.out.print("\nPress Enter to continue . . . ");
-        sc.nextLine();
-    }
-
-    private void printUsers() {
-        System.out.printf("| %-5s | %-20s | %-25s | %-12s | %-8s |%n",
-                "ID", "NAME", "EMAIL", "ROLE", "STATUS");
-        System.out.println("|-------|----------------------|---------------------------|"
-                + "--------------|----------|");
-
+    private void viewAllUsers() {
+        System.out.println("\n--- ALL USERS ---");
         for (User u : userDao.getAllUsers()) {
-            System.out.printf("| %-5d | %-20s | %-25s | %-12s | %-8s |%n",
-                    u.u_id(), u.name(), u.email(), u.roles(), u.status());
+            System.out.println(u);
         }
     }
 
-    // Returns the chosen role, or null if the choice is invalid
-    private String chooseRole(String prompt) {
-        System.out.println("\n" + prompt);
-        System.out.println("1. FRONT DESK");
-        System.out.println("2. ADMIN");
-        System.out.println("3. CUSTOMER");
-        System.out.print("Choice: ");
-        switch (readInt()) {
-            case 1:
-                return "FRONT DESK";
-            case 2:
-                return "ADMIN";
-            case 3:
-                return "CUSTOMER";
-            default:
-                return null;
+    private void viewPendingUsers() {
+        System.out.println("\n--- PENDING USERS ---");
+        boolean found = false;
+        for (User u : userDao.getAllUsers()) {
+            if (u.status().equalsIgnoreCase("PENDING")) {
+                System.out.println(u);
+                found = true;
+            }
+        }
+        if (!found) {
+            System.out.println("No pending users.");
         }
     }
 
-    // Returns the chosen status, or null if the choice is invalid
-    private String chooseStatus(String prompt) {
-        System.out.println("\n" + prompt);
-        System.out.println("1. ACTIVE");
-        System.out.println("2. PENDING");
-        System.out.print("Choice: ");
-        switch (readInt()) {
-            case 1:
-                return "ACTIVE";
-            case 2:
-                return "PENDING";
-            default:
-                return null;
-        }
-    }
+    private void approveUser() {
+        viewPendingUsers();
+        System.out.print("\nEnter User ID to approve: ");
+        int id = Integer.parseInt(scanner.nextLine().trim());
 
-    //////////////////////////////////////////////////////////////
-    // MANAGE USERS (CRUD)
-    //////////////////////////////////////////////////////////////
-
-    private void createUser() {
-        clearScreen();
-        System.out.println("=== CREATE USER ===\n");
-
-        String name = readLine("Enter Name: ");
-        String email = readLine("Enter Email: ");
-        String password = readLine("Enter Password: ");
-
-        if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
-            System.out.println("\nName, email and password are required.");
+        User u = userDao.getUserById(id);
+        if (u == null) {
+            System.out.println("User not found.");
             return;
         }
 
-        String role = chooseRole("Select Role:");
-        if (role == null) {
-            System.out.println("\nInvalid role selection. User not created.");
+        User approved = new User(u.u_id(), u.name(), u.email(), u.password(), u.roles(), "ACTIVE");
+        if (userDao.updateUser(approved)) {
+            System.out.println(u.name() + " is now ACTIVE.");
+        } else {
+            System.out.println("Approval failed.");
+        }
+    }
+
+    private void addUser() {
+        System.out.print("Name: ");
+        String name = scanner.nextLine().trim();
+        System.out.print("Email: ");
+        String email = scanner.nextLine().trim();
+        System.out.print("Password: ");
+        String password = scanner.nextLine().trim();
+        System.out.print("Role [1] FRONT DESK | [2] ADMIN | [3] CUSTOMER: ");
+        String roleChoice = scanner.nextLine().trim();
+
+        String role;
+        if (roleChoice.equals("1")) {
+            role = "FRONT DESK";
+        } else if (roleChoice.equals("2")) {
+            role = "ADMIN";
+        } else if (roleChoice.equals("3")) {
+            role = "CUSTOMER";
+        } else {
+            System.out.println("Invalid role.");
             return;
         }
 
         if (userDao.emailExists(email, -1)) {
-            System.out.println("\nUser already exists! Cannot create duplicate.");
+            System.out.println("Email already exists.");
             return;
         }
 
-        // Admin-created accounts need no approval, so they start ACTIVE
         if (userDao.createUser(name, email, password, role, "ACTIVE")) {
-            System.out.println("\nUser created successfully!");
+            System.out.println("User added.");
         } else {
-            System.out.println("\nFailed to create user.");
+            System.out.println("Failed to add user.");
         }
     }
 
     private void updateUser() {
-        clearScreen();
-        System.out.println("=== UPDATE USER ===\n");
-        printUsers();
+        viewAllUsers();
+        System.out.print("\nEnter User ID to update: ");
+        int id = Integer.parseInt(scanner.nextLine().trim());
 
-        System.out.print("\nEnter User ID to Update: ");
-        int id = readInt();
-
-        User current = userDao.getUserById(id);
-        if (current == null) {
-            System.out.printf("%nUser ID %d not found.%n", id);
+        User u = userDao.getUserById(id);
+        if (u == null) {
+            System.out.println("User not found.");
             return;
         }
 
-        System.out.println("\n(Leave blank to keep the current value)\n");
+        System.out.println("(Press Enter to keep the current value)");
 
-        String name = readLine("Enter New Name [" + current.name() + "]: ");
-        if (name.isEmpty()) name = current.name();
+        System.out.print("New Name [" + u.name() + "]: ");
+        String name = scanner.nextLine().trim();
+        if (name.isEmpty()) {
+            name = u.name();
+        }
 
-        String email = readLine("Enter New Email [" + current.email() + "]: ");
-        if (email.isEmpty()) email = current.email();
-
-        String password = readLine("Enter New Password [unchanged]: ");
-        if (password.isEmpty()) password = current.password();
-
-        if (!email.equalsIgnoreCase(current.email()) && userDao.emailExists(email, id)) {
-            System.out.println("\nThat email is already used by another user. Update cancelled.");
+        System.out.print("New Email [" + u.email() + "]: ");
+        String email = scanner.nextLine().trim();
+        if (email.isEmpty()) {
+            email = u.email();
+        }
+        if (userDao.emailExists(email, id)) {
+            System.out.println("Email already used by another user.");
             return;
         }
 
-        String role = current.roles();
-        System.out.print("\nChange role? Current: " + role + " (y/N): ");
-        if (sc.nextLine().trim().equalsIgnoreCase("y")) {
-            String chosen = chooseRole("Select New Role:");
-            if (chosen == null) {
-                System.out.println("\nInvalid role selection. Update cancelled.");
-                return;
-            }
-            role = chosen;
+        System.out.print("New Password [unchanged]: ");
+        String password = scanner.nextLine().trim();
+        if (password.isEmpty()) {
+            password = u.password();
         }
 
-        String status = current.status();
-        System.out.print("\nChange status? Current: " + status + " (y/N): ");
-        if (sc.nextLine().trim().equalsIgnoreCase("y")) {
-            String chosen = chooseStatus("Select New Status:");
-            if (chosen == null) {
-                System.out.println("\nInvalid status selection. Update cancelled.");
-                return;
-            }
-            status = chosen;
+        System.out.print("New Role [1] FRONT DESK | [2] ADMIN | [3] CUSTOMER [" + u.roles() + "]: ");
+        String roleChoice = scanner.nextLine().trim();
+        String role = u.roles();
+        if (roleChoice.equals("1")) {
+            role = "FRONT DESK";
+        } else if (roleChoice.equals("2")) {
+            role = "ADMIN";
+        } else if (roleChoice.equals("3")) {
+            role = "CUSTOMER";
+        } else if (!roleChoice.isEmpty()) {
+            System.out.println("Invalid role.");
+            return;
         }
 
-        User updated = new User(id, name, email, password, role, status);
+        System.out.print("New Status [1] ACTIVE | [2] PENDING [" + u.status() + "]: ");
+        String statusChoice = scanner.nextLine().trim();
+        String status = u.status();
+        if (statusChoice.equals("1")) {
+            status = "ACTIVE";
+        } else if (statusChoice.equals("2")) {
+            status = "PENDING";
+        } else if (!statusChoice.isEmpty()) {
+            System.out.println("Invalid status.");
+            return;
+        }
+
+        User updated = new User(u.u_id(), name, email, password, role, status);
         if (userDao.updateUser(updated)) {
-            System.out.println("\nUser updated successfully!");
+            System.out.println("User updated.");
         } else {
-            System.out.println("\nFailed to update user.");
+            System.out.println("Update failed.");
         }
     }
 
-    private void deleteUser(User loggedInUser) {
-        clearScreen();
-        System.out.println("=== DELETE USER ===\n");
-        printUsers();
+    private void deleteUser(User admin) {
+        viewAllUsers();
+        System.out.print("\nEnter User ID to delete: ");
+        int id = Integer.parseInt(scanner.nextLine().trim());
 
-        System.out.print("\nEnter User ID to Delete: ");
-        int id = readInt();
-
-        User target = userDao.getUserById(id);
-        if (target == null) {
-            System.out.printf("%nUser ID %d not found.%n", id);
-            return;
-        }
-
-        if (id == loggedInUser.u_id()) {
-            System.out.println("\nYou cannot delete the account you are logged in with.");
-            return;
-        }
-
-        System.out.print("\nDelete " + target.name() + " (" + target.roles() + ")? (y/N): ");
-        if (!sc.nextLine().trim().equalsIgnoreCase("y")) {
-            System.out.println("\nDelete cancelled.");
+        if (id == admin.u_id()) {
+            System.out.println("You cannot delete your own account.");
             return;
         }
 
         if (userDao.deleteUser(id)) {
-            System.out.println("\nUser deleted successfully!");
+            System.out.println("User deleted.");
         } else {
-            System.out.println("\nFailed to delete user.");
-        }
-    }
-
-    private void manageUsers(User loggedInUser) {
-        while (true) {
-            clearScreen();
-            System.out.println("=== MANAGE USERS ===\n");
-            System.out.println("1. Create User");
-            System.out.println("2. View Users");
-            System.out.println("3. Update User");
-            System.out.println("4. Delete User");
-            System.out.println("5. Back");
-            System.out.print("\nChoice: ");
-
-            switch (readInt()) {
-                case 1:
-                    createUser();
-                    pause();
-                    break;
-                case 2:
-                    clearScreen();
-                    System.out.println("=== USER LIST ===\n");
-                    printUsers();
-                    pause();
-                    break;
-                case 3:
-                    updateUser();
-                    pause();
-                    break;
-                case 4:
-                    deleteUser(loggedInUser);
-                    pause();
-                    break;
-                case 5:
-                    return;
-                default:
-                    System.out.println("\nInvalid choice!");
-                    pause();
-                    break;
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////////////
-    // MANAGE SUBSCRIPTION
-    //////////////////////////////////////////////////////////////
-
-    private void manageSubscription() {
-        clearScreen();
-        System.out.println("=== MANAGE SUBSCRIPTION ===\n");
-
-        System.out.println("AVAILABLE PLANS:");
-        System.out.println("---------------------------------");
-        System.out.println("1. Regular  - " + FrontDesk.REGULAR_PRICE + " per month");
-        System.out.println("2. Premium  - " + FrontDesk.PREMIUM_PRICE + " per month");
-        System.out.println("---------------------------------");
-        System.out.println("\nNote: Prices are fixed in system.");
-
-        pause();
-    }
-
-    //////////////////////////////////////////////////////////////
-    // ADMIN MAIN MENU
-    //////////////////////////////////////////////////////////////
-
-    public void showMenu(User loggedInUser) {
-        while (true) {
-            clearScreen();
-            System.out.println("=================================");
-            System.out.println("        ADMIN DASHBOARD");
-            System.out.println("=================================");
-            System.out.println("Welcome, " + loggedInUser.name() + "\n");
-
-            System.out.println("1. Manage Users");
-            System.out.println("2. Manage Subscription");
-            System.out.println("3. Logout");
-            System.out.print("\nChoice: ");
-
-            switch (readInt()) {
-                case 1:
-                    manageUsers(loggedInUser);
-                    break;
-                case 2:
-                    manageSubscription();
-                    break;
-                case 3:
-                    return;
-                default:
-                    System.out.println("\nInvalid choice!");
-                    pause();
-                    break;
-            }
+            System.out.println("User not found or delete failed.");
         }
     }
 }

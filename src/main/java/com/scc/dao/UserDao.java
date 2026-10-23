@@ -6,10 +6,32 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserDao {
+
+    // Creates a default admin only if there is no admin in the database yet
+    public void defaultAdminGenerator() {
+        String checkSql = "SELECT COUNT(*) FROM users WHERE roles = 'ADMIN'";
+        String insertSql = "INSERT INTO users(name, email, password, roles, status) " +
+                "VALUES('admin', 'admin@gmail.com', 'admin123', 'ADMIN', 'ACTIVE')";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(checkSql)) {
+
+            if (rs.next() && rs.getInt(1) == 0) {
+                try (Statement ins = conn.createStatement()) {
+                    ins.executeUpdate(insertSql);
+                }
+                System.out.println("-> Default Admin created (Email: admin@gmail.com | Password: admin123)");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error seeding default admin: " + e.getMessage());
+        }
+    }
 
     public boolean registerUser(String name, String email, String password, String roles) {
 

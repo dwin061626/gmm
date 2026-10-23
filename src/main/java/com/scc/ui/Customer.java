@@ -9,170 +9,84 @@ import java.util.Scanner;
 
 public class Customer {
 
-    private final Scanner sc;
-    private final UserDao userDao = new UserDao();
+    private final Scanner scanner;
+    private final UserDao userDao;
     private final PaymentDao paymentDao = new PaymentDao();
 
-    // Share the Scanner from Main so two Scanners don't fight over System.in
-    public Customer(Scanner sc) {
-        this.sc = sc;
+    public Customer(Scanner scanner, UserDao userDao) {
+        this.scanner = scanner;
+        this.userDao = userDao;
     }
 
-    //////////////////////////////////////////////////////////////
-    // HELPERS
-    //////////////////////////////////////////////////////////////
+    public void display(User customer) {
+        boolean loggedIn = true;
+        while (loggedIn) {
+            System.out.println("\n=========================================");
+            System.out.println("           CUSTOMER DASHBOARD");
+            System.out.println("=========================================");
+            System.out.println("Welcome, " + customer.name());
+            System.out.println("1. View Subscription Plans");
+            System.out.println("2. Apply Subscription");
+            System.out.println("3. Logout");
+            System.out.print("Choose an option (1-3): ");
 
-    // Safe integer input (returns -1 on invalid input)
-    private int readInt() {
-        try {
-            return Integer.parseInt(sc.nextLine().trim());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
+            String choice = scanner.nextLine().trim();
 
-    private void clearScreen() {
-        try {
-            if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
-            } else {
-                System.out.print("\033[H\033[2J");
-                System.out.flush();
+            switch (choice) {
+                case "1":
+                    System.out.println("\n1. Regular - " + FrontDesk.REGULAR_PRICE + " per month");
+                    System.out.println("2. Premium - " + FrontDesk.PREMIUM_PRICE + " per month");
+                    break;
+                case "2":
+                    applySubscription(customer);
+                    break;
+                case "3":
+                    loggedIn = false;
+                    break;
+                default:
+                    System.out.println("Invalid option. Please choose 1-3.");
             }
-        } catch (Exception ignored) {
         }
     }
 
-    private void pause() {
-        System.out.print("\nPress Enter to continue . . . ");
-        sc.nextLine();
-    }
-
-    //////////////////////////////////////////////////////////////
-    // VIEW SUBSCRIPTION
-    //////////////////////////////////////////////////////////////
-
-    private void viewSubscription(User loggedInUser) {
-        clearScreen();
-        System.out.println("========== SUBSCRIPTION PLANS ==========\n");
-        System.out.println("1. Regular  - " + FrontDesk.REGULAR_PRICE + " per month");
-        System.out.println("2. Premium  - " + FrontDesk.PREMIUM_PRICE + " per month");
-        System.out.println("\n----------------------------------------");
-        System.out.println("Both plans are valid for 1 month only.");
-
-        // Show the customer's current account status (fresh from the database)
-        User fresh = userDao.getUserById(loggedInUser.u_id());
-        if (fresh != null) {
-            System.out.println("\nYour account status: " + fresh.status());
-        }
-    }
-
-    //////////////////////////////////////////////////////////////
-    // APPLY SUBSCRIPTION
-    //////////////////////////////////////////////////////////////
-
-    private void applySubscription(User loggedInUser) {
-        clearScreen();
-        System.out.println("========== APPLY SUBSCRIPTION ==========\n");
-
-        // Re-read the user so we see the latest status
-        User me = userDao.getUserById(loggedInUser.u_id());
-        if (me == null) {
-            System.out.println("Your account could not be found.");
-            return;
-        }
-
-        System.out.println("Applying as: " + me.name() + " (" + me.email() + ")");
-
-        System.out.println("\nChoose Subscription Plan:");
-        System.out.println("1. Regular  (" + FrontDesk.REGULAR_PRICE + ")");
-        System.out.println("2. Premium  (" + FrontDesk.PREMIUM_PRICE + ")");
-        System.out.print("Choice: ");
-        int subChoice = readInt();
+    private void applySubscription(User customer) {
+        System.out.println("\n1. Regular - " + FrontDesk.REGULAR_PRICE);
+        System.out.println("2. Premium - " + FrontDesk.PREMIUM_PRICE);
+        System.out.print("Choose plan: ");
+        String planChoice = scanner.nextLine().trim();
 
         String plan;
         double price;
-        if (subChoice == 1) {
+        if (planChoice.equals("1")) {
             plan = "Regular";
             price = FrontDesk.REGULAR_PRICE;
-        } else if (subChoice == 2) {
+        } else if (planChoice.equals("2")) {
             plan = "Premium";
             price = FrontDesk.PREMIUM_PRICE;
         } else {
-            System.out.println("\nInvalid choice! Default set to Regular.");
-            plan = "Regular";
-            price = FrontDesk.REGULAR_PRICE;
-        }
-
-        System.out.printf("%nSubscription Fee: %.2f%n", price);
-        System.out.print("Enter Payment Amount: ");
-        double payment;
-        try {
-            payment = Double.parseDouble(sc.nextLine().trim());
-        } catch (NumberFormatException e) {
-            System.out.println("\nInvalid amount! Transaction cancelled.");
+            System.out.println("Invalid plan.");
             return;
         }
 
-        if (payment < price) {
-            System.out.println("\nInsufficient Payment! Transaction Cancelled.");
+        System.out.print("Enter payment amount: ");
+        double paid = Double.parseDouble(scanner.nextLine().trim());
+
+        if (paid < price) {
+            System.out.println("Insufficient payment.");
             return;
         }
 
-        // Save the payment (the account stays ACTIVE)
-        Payment p = paymentDao.processPayment(me, plan, price, payment);
+        Payment p = paymentDao.processPayment(customer, plan, price, paid);
         if (p == null) {
-            System.out.println("\nTransaction failed. Nothing was saved.");
+            System.out.println("Payment failed.");
             return;
         }
 
-        clearScreen();
-        System.out.println("=========== PAYMENT RECEIPT ===========\n");
-        System.out.println("Name            : " + me.name());
-        System.out.println("Email           : " + me.email());
-        System.out.println("Subscription    : " + p.plan());
-        System.out.printf("Monthly Fee     : %.2f%n", p.fee());
-        System.out.printf("Amount Paid     : %.2f%n", p.paid());
-        System.out.printf("Change          : %.2f%n", p.paid() - p.fee());
-        System.out.println("Valid Until     : " + p.expDate());
-        System.out.println("----------------------------------------");
-        System.out.println("Status          : ACTIVE");
-        System.out.println("========================================");
-    }
-
-    //////////////////////////////////////////////////////////////
-    // CUSTOMER DASHBOARD
-    //////////////////////////////////////////////////////////////
-
-    public void showMenu(User loggedInUser) {
-        while (true) {
-            clearScreen();
-            System.out.println("=================================");
-            System.out.println("         USER DASHBOARD");
-            System.out.println("=================================");
-            System.out.println("Welcome, " + loggedInUser.name() + "\n");
-
-            System.out.println("1. View Subscription");
-            System.out.println("2. Apply Subscription");
-            System.out.println("3. Logout");
-            System.out.print("\nChoice: ");
-
-            switch (readInt()) {
-                case 1:
-                    viewSubscription(loggedInUser);
-                    pause();
-                    break;
-                case 2:
-                    applySubscription(loggedInUser);
-                    pause();
-                    break;
-                case 3:
-                    return;
-                default:
-                    System.out.println("\nInvalid choice!");
-                    pause();
-                    break;
-            }
-        }
+        System.out.println("\n----- RECEIPT -----");
+        System.out.println("Plan        : " + p.plan());
+        System.out.println("Fee         : " + p.fee());
+        System.out.println("Paid        : " + p.paid());
+        System.out.println("Change      : " + (p.paid() - p.fee()));
+        System.out.println("Valid Until : " + p.expDate());
     }
 }

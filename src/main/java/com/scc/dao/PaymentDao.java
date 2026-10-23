@@ -21,29 +21,6 @@ public class PaymentDao {
     public record Summary(int count, double total) {
     }
 
-    public PaymentDao() {
-        createTableIfMissing();
-    }
-
-    private void createTableIfMissing() {
-        String sql = "CREATE TABLE IF NOT EXISTS payments (" +
-                "sub_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "u_id INTEGER NOT NULL, " +
-                "name TEXT NOT NULL, " +
-                "plan TEXT NOT NULL, " +
-                "fee REAL NOT NULL, " +
-                "amount_paid REAL NOT NULL, " +
-                "payment_date TEXT NOT NULL, " +
-                "expiry_date TEXT NOT NULL)";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement st = conn.createStatement()) {
-            st.execute(sql);
-        } catch (SQLException e) {
-            System.err.println("Could not create payments table: " + e.getMessage());
-        }
-    }
-
     /**
      * Saves the payment AND activates the member in one transaction,
      * so you never get a payment without activation (or vice versa).
@@ -55,7 +32,6 @@ public class PaymentDao {
 
     /**
      * Same as above, but lets the caller choose the member's new status.
-     * Customers who apply for themselves use "PENDING" (waiting for approval).
      */
     public Payment processPayment(User member, String plan, double fee, double paid, String newStatus) {
         LocalDate now = LocalDate.now();
