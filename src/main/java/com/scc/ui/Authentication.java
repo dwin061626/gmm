@@ -60,7 +60,7 @@ public class Authentication {
             return;
         }
 
-        if (!user.status().equalsIgnoreCase("ACTIVE")) {
+        if (!user.status().equalsIgnoreCase("APPROVED")) {
             System.out.println("\nYour account is PENDING. Please wait for approval before logging in.");
             return;
         }
@@ -120,7 +120,7 @@ public class Authentication {
         if (userDao.registerUser(name, email, password, roles)) {
             // The first admin approves themselves so someone can approve everyone else
             if (roles.equals("ADMIN") && userDao.activateIfFirstAdmin(email)) {
-                System.out.println("You are the first admin, so your account is already ACTIVE. You can log in now.");
+                System.out.println("You are the first admin, so your account is already APPROVED. You can log in now.");
             }
         }
     }

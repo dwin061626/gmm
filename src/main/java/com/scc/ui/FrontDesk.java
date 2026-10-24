@@ -122,7 +122,7 @@ public class FrontDesk {
         System.out.println("Paid        : " + p.paid());
         System.out.println("Change      : " + (p.paid() - p.fee()));
         System.out.println("Valid Until : " + p.expDate());
-        System.out.println("Status      : ACTIVE");
+        System.out.println("Status      : APPROVED");
     }
 
     private void viewPayments() {

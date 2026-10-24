@@ -27,7 +27,7 @@ public class PaymentDao {
      * Returns the saved Payment, or null on failure.
      */
     public Payment processPayment(User member, String plan, double fee, double paid) {
-        return processPayment(member, plan, fee, paid, "ACTIVE");
+        return processPayment(member, plan, fee, paid, "APPROVED");
     }
 
     /**

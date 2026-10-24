@@ -6,7 +6,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,19 +13,25 @@ public class UserDao {
 
     // Creates a default admin only if there is no admin in the database yet
     public void defaultAdminGenerator() {
-        String checkSql = "SELECT COUNT(*) FROM users WHERE roles = 'ADMIN'";
-        String insertSql = "INSERT INTO users(name, email, password, roles, status) " +
-                "VALUES('admin', 'admin@gmail.com', 'admin123', 'ADMIN', 'ACTIVE')";
+        String checkSql = "SELECT COUNT(*) FROM users WHERE roles = ?";
+        String insertSql = "INSERT INTO users(name, email, password, roles, status) VALUES(?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(checkSql)) {
+             PreparedStatement check = conn.prepareStatement(checkSql)) {
 
-            if (rs.next() && rs.getInt(1) == 0) {
-                try (Statement ins = conn.createStatement()) {
-                    ins.executeUpdate(insertSql);
+            check.setString(1, "ADMIN");
+            try (ResultSet rs = check.executeQuery()) {
+                if (rs.next() && rs.getInt(1) == 0) {
+                    try (PreparedStatement ins = conn.prepareStatement(insertSql)) {
+                        ins.setString(1, "admin");
+                        ins.setString(2, "admin@gmail.com");
+                        ins.setString(3, "admin123");
+                        ins.setString(4, "ADMIN");
+                        ins.setString(5, "APPROVED");
+                        ins.executeUpdate();
+                    }
+                    System.out.println("-> Default Admin created (Email: admin@gmail.com | Password: admin123)");
                 }
-                System.out.println("-> Default Admin created (Email: admin@gmail.com | Password: admin123)");
             }
         } catch (SQLException e) {
             System.err.println("Error seeding default admin: " + e.getMessage());
@@ -105,7 +110,7 @@ public class UserDao {
         return null;
     }
 
-    // Admin-created user with an explicit status (e.g. ACTIVE, no approval needed)
+    // Admin-created user with an explicit status (e.g. APPROVED, no approval needed)
     public boolean createUser(String name, String email, String password, String roles, String status) {
         String sql = "INSERT INTO users (name, password, email, roles, status) VALUES (?, ?, ?, ?, ?)";
 
@@ -198,21 +203,63 @@ public class UserDao {
         return null;
     }
 
-    // First-admin bootstrap: if NO active admin exists yet, activate this admin account
-    // so someone can log in and approve everyone else. Returns true if it was activated.
-    public boolean activateIfFirstAdmin(String email) {
-        String sql = "UPDATE users SET status = 'ACTIVE' " +
-                "WHERE LOWER(email) = LOWER(?) AND roles = 'ADMIN' " +
-                "AND NOT EXISTS (SELECT 1 FROM users WHERE roles = 'ADMIN' AND status = 'ACTIVE')";
+    // Returns all users with status = PENDING, across all roles
+    public List<User> getPendingUsers() {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT u_id, name, email, password, roles, status FROM users " +
+                "WHERE status = ? ORDER BY u_id";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, email);
+            pstmt.setString(1, "PENDING");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    users.add(mapUser(rs));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Could not load pending users: " + e.getMessage());
+        }
+        return users;
+    }
+
+    // Changes a user's status from PENDING to APPROVED
+    public boolean approveUser(int userId) {
+        String sql = "UPDATE users SET status = ? WHERE u_id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, "APPROVED");
+            pstmt.setInt(2, userId);
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Could not activate first admin: " + e.getMessage());
+            System.err.println("Approve user failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // First-admin bootstrap: if NO approved admin exists yet, approve this admin account
+    // so someone can log in and approve everyone else. Returns true if it was approved.
+    public boolean activateIfFirstAdmin(String email) {
+        String sql = "UPDATE users SET status = ? " +
+                "WHERE LOWER(email) = LOWER(?) AND roles = ? " +
+                "AND NOT EXISTS (SELECT 1 FROM users WHERE roles = ? AND status = ?)";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, "APPROVED");
+            pstmt.setString(2, email);
+            pstmt.setString(3, "ADMIN");
+            pstmt.setString(4, "ADMIN");
+            pstmt.setString(5, "APPROVED");
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Could not approve first admin: " + e.getMessage());
             return false;
         }
     }
