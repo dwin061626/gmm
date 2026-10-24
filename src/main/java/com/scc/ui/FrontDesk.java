@@ -7,13 +7,16 @@ import com.scc.dao.UserDao;
 import com.scc.model.User;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Scanner;
 
 public class FrontDesk {
 
+    // Fixed monthly prices
     public static final int REGULAR_PRICE = 700;
     public static final int PREMIUM_PRICE = 1500;
 
+    // Shared Scanner and UserDao passed in from Main
     private final Scanner scanner;
     private final UserDao userDao;
     private final PaymentDao paymentDao = new PaymentDao();
@@ -23,19 +26,27 @@ public class FrontDesk {
         this.userDao = userDao;
     }
 
+    //////////////////////////////////////////////////////////////
+    // FRONT DESK DASHBOARD
+    //////////////////////////////////////////////////////////////
+
     public void display(User frontDesk) {
         boolean loggedIn = true;
+
         while (loggedIn) {
-            System.out.println("\n=========================================");
-            System.out.println("          FRONT DESK DASHBOARD");
-            System.out.println("=========================================");
-            System.out.println("Welcome, " + frontDesk.name());
-            System.out.println("1. View Members");
-            System.out.println("2. Process Payment / Activate Member");
-            System.out.println("3. View Payment History");
-            System.out.println("4. Income Summary");
-            System.out.println("5. Logout");
-            System.out.print("Choose an option (1-5): ");
+            System.out.println();
+            System.out.println("+----------------------------------------------------------+");
+            System.out.println("|                   FRONT DESK DASHBOARD                   |");
+            System.out.println("+----------------------------------------------------------+");
+            System.out.printf("| %-56s |%n", "Welcome, " + frontDesk.name());
+            System.out.println("+----------------------------------------------------------+");
+            System.out.println("| 1. View Members                                          |");
+            System.out.println("| 2. Process Payment / Activate Member                     |");
+            System.out.println("| 3. View Payment History                                  |");
+            System.out.println("| 4. Income Summary                                        |");
+            System.out.println("| 5. Logout                                                |");
+            System.out.println("+----------------------------------------------------------+");
+            System.out.print("Select: ");
 
             String choice = scanner.nextLine().trim();
 
@@ -56,36 +67,70 @@ public class FrontDesk {
                     loggedIn = false;
                     break;
                 default:
-                    System.out.println("Invalid option. Please choose 1-5.");
+                    System.out.println("->Invalid option. Please choose 1-5.");
             }
         }
     }
 
+    //////////////////////////////////////////////////////////////
+    // VIEW MEMBERS
+    //////////////////////////////////////////////////////////////
+
+    private void printMemberTable(List<User> users) {
+        System.out.println("+-------+-----------------+--------------+------------+");
+        System.out.printf("| %-5s | %-15s | %-12s | %-10s |%n", "ID", "USERNAME", "ROLE", "STATUS");
+        System.out.println("+-------+-----------------+--------------+------------+");
+
+        for (User u : users) {
+            System.out.printf("| %-5s | %-15s | %-12s | %-10s |%n",
+                    u.u_id(), u.name(), u.roles(), u.status());
+        }
+
+        System.out.println("+-------+-----------------+--------------+------------+");
+    }
+
     private void viewMembers() {
-        System.out.println("\n--- MEMBERS ---");
-        for (User u : userDao.getAllUsers()) {
-            System.out.println(u);
+        System.out.println("\n========================MEMBER LIST=========================");
+
+        List<User> users = userDao.getAllUsers();
+        if (users.isEmpty()) {
+            System.out.println("->No members found.");
+        } else {
+            printMemberTable(users);
         }
     }
 
+    //////////////////////////////////////////////////////////////
+    // PROCESS PAYMENT
+    //////////////////////////////////////////////////////////////
+
     private void processPayment() {
         viewMembers();
-        System.out.print("\nEnter Member ID: ");
+
+        // 1. Pick the member
+        System.out.print("\nEnter Member ID (or 0 to cancel): ");
         int id = Integer.parseInt(scanner.nextLine().trim());
+
+        if (id == 0) {
+            System.out.println("->Payment cancelled.");
+            return;
+        }
 
         User member = userDao.getUserById(id);
         if (member == null) {
-            System.out.println("Member not found.");
+            System.out.println("->Member not found.");
             return;
         }
         if (!member.roles().equalsIgnoreCase("CUSTOMER")) {
-            System.out.println("This account is not a customer.");
+            System.out.println("->This account is not a customer.");
             return;
         }
 
+        // 2. Pick the plan
+        System.out.println("\n========================SELECT PLAN=========================");
         System.out.println("1. Regular - " + REGULAR_PRICE);
         System.out.println("2. Premium - " + PREMIUM_PRICE);
-        System.out.print("Choose plan: ");
+        System.out.print("Select: ");
         String planChoice = scanner.nextLine().trim();
 
         String plan;
@@ -97,41 +142,68 @@ public class FrontDesk {
             plan = "Premium";
             price = PREMIUM_PRICE;
         } else {
-            System.out.println("Invalid plan.");
+            System.out.println("->Invalid plan.");
             return;
         }
 
-        System.out.print("Enter payment amount: ");
+        // 3. Take the payment
+        System.out.print("Enter Payment Amount: ");
         double paid = Double.parseDouble(scanner.nextLine().trim());
 
         if (paid < price) {
-            System.out.println("Insufficient payment.");
+            System.out.println("->Insufficient payment.");
             return;
         }
 
+        // 4. Save the payment and approve the member
         Payment p = paymentDao.processPayment(member, plan, price, paid);
         if (p == null) {
-            System.out.println("Payment failed.");
+            System.out.println("->Payment failed.");
             return;
         }
 
-        System.out.println("\n----- RECEIPT -----");
+        // 5. Receipt
+        System.out.println("\n======================PAYMENT RECEIPT=======================");
         System.out.println("Name        : " + member.name());
         System.out.println("Plan        : " + p.plan());
-        System.out.println("Fee         : " + p.fee());
-        System.out.println("Paid        : " + p.paid());
-        System.out.println("Change      : " + (p.paid() - p.fee()));
+        System.out.printf("Fee         : %.2f%n", p.fee());
+        System.out.printf("Paid        : %.2f%n", p.paid());
+        System.out.printf("Change      : %.2f%n", p.paid() - p.fee());
         System.out.println("Valid Until : " + p.expDate());
         System.out.println("Status      : APPROVED");
+        System.out.println("->PAYMENT PROCESSED SUCCESSFULLY!");
     }
 
+    //////////////////////////////////////////////////////////////
+    // PAYMENT HISTORY
+    //////////////////////////////////////////////////////////////
+
     private void viewPayments() {
-        System.out.println("\n--- PAYMENT HISTORY ---");
-        for (Payment p : paymentDao.getAllPayments()) {
-            System.out.println(p.subId() + " | " + p.name() + " | " + p.plan()
-                    + " | " + p.paid() + " | " + p.payDate() + " | " + p.expDate());
+        System.out.println("\n======================PAYMENT HISTORY=======================");
+
+        List<Payment> payments = paymentDao.getAllPayments();
+        if (payments.isEmpty()) {
+            System.out.println("->No payment records found.");
+            return;
         }
+
+        System.out.println("+-------+-------+-----------------+----------+-----------+------------+------------+");
+        System.out.printf("| %-5s | %-5s | %-15s | %-8s | %-9s | %-10s | %-10s |%n",
+                "SUB", "UID", "NAME", "PLAN", "PAID", "DATE", "EXPIRY");
+        System.out.println("+-------+-------+-----------------+----------+-----------+------------+------------+");
+
+        for (Payment p : payments) {
+            System.out.printf("| %-5s | %-5s | %-15s | %-8s | %-9s | %-10s | %-10s |%n",
+                    p.subId(), p.uId(), p.name(), p.plan(),
+                    String.format("%.2f", p.paid()), p.payDate(), p.expDate());
+        }
+
+        System.out.println("+-------+-------+-----------------+----------+-----------+------------+------------+");
     }
+
+    //////////////////////////////////////////////////////////////
+    // INCOME SUMMARY
+    //////////////////////////////////////////////////////////////
 
     private void incomeSummary() {
         String today = LocalDate.now().toString();
@@ -140,8 +212,12 @@ public class FrontDesk {
         Summary day = paymentDao.getSummaryForDate(today);
         Summary mon = paymentDao.getSummaryForMonth(month);
 
-        System.out.println("\n--- INCOME SUMMARY ---");
-        System.out.println("Today      : " + day.count() + " payments, " + day.total());
-        System.out.println("This Month : " + mon.count() + " payments, " + mon.total());
+        System.out.println("\n=======================INCOME SUMMARY=======================");
+        System.out.println("+----------------+----------+--------------+");
+        System.out.printf("| %-14s | %-8s | %-12s |%n", "PERIOD", "PAYMENTS", "INCOME");
+        System.out.println("+----------------+----------+--------------+");
+        System.out.printf("| %-14s | %-8s | %-12s |%n", "Today", day.count(), String.format("%.2f", day.total()));
+        System.out.printf("| %-14s | %-8s | %-12s |%n", "This Month", mon.count(), String.format("%.2f", mon.total()));
+        System.out.println("+----------------+----------+--------------+");
     }
 }

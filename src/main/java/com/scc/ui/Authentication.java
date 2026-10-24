@@ -7,6 +7,7 @@ import java.util.Scanner;
 
 public class Authentication {
 
+    // Shared Scanner and UserDao passed in from Main
     private final Scanner scanner;
     private final UserDao userDao;
 
@@ -15,17 +16,19 @@ public class Authentication {
         this.userDao = userDao;
     }
 
+    //////////////////////////////////////////////////////////////
+    // START MENU
+    //////////////////////////////////////////////////////////////
+
     public void start() {
         boolean running = true;
 
         while (running) {
-            System.out.println("\n===========================================");
-            System.out.println(" GYM MEMBERSHIP MANAGEMENT ");
-            System.out.println("===========================================");
+            System.out.println("\n=================GYM MEMBERSHIP MANAGEMENT==================");
             System.out.println("1. Login");
             System.out.println("2. Register");
             System.out.println("3. Exit");
-            System.out.print("Choose an option: ");
+            System.out.print("Select: ");
 
             String choice = scanner.nextLine().trim();
 
@@ -37,38 +40,48 @@ public class Authentication {
                     register();
                     break;
                 case "3":
-                    System.out.println("Goodbye!");
+                    System.out.println("->Goodbye!");
                     running = false;
                     break;
                 default:
-                    System.out.println("Invalid option. Please choose 1, 2 or 3.");
+                    System.out.println("->Invalid option. Please choose 1, 2 or 3.");
             }
         }
     }
 
+    //////////////////////////////////////////////////////////////
+    // LOGIN
+    //////////////////////////////////////////////////////////////
+
     private void login() {
-        System.out.println("\n=== LOGIN ===");
+        System.out.println("\n===========================LOGIN============================");
+
         System.out.print("Email: ");
         String email = scanner.nextLine().trim();
         System.out.print("Password: ");
         String password = scanner.nextLine().trim();
 
+        // Check the email and password
         User user = userDao.login(email, password);
-
         if (user == null) {
-            System.out.println("\nInvalid email or password.");
+            System.out.println("->Invalid email or password.");
             return;
         }
 
+        // Only APPROVED accounts can log in
         if (!user.status().equalsIgnoreCase("APPROVED")) {
-            System.out.println("\nYour account is PENDING. Please wait for approval before logging in.");
+            System.out.println("->Your account is PENDING. Please wait for approval before logging in.");
             return;
         }
 
         routeByRole(user);
     }
 
-    // Sends each logged-in user to their role's menu, sharing the same Scanner and UserDao
+    //////////////////////////////////////////////////////////////
+    // ROLE ROUTING
+    //////////////////////////////////////////////////////////////
+
+    // Sends each logged-in user to their role's menu
     private void routeByRole(User user) {
         String role = user.roles().toUpperCase();
 
@@ -79,12 +92,18 @@ public class Authentication {
         } else if (role.equals("CUSTOMER")) {
             new Customer(scanner, userDao).display(user);
         } else {
-            System.out.println("Unknown role: " + user.roles());
+            System.out.println("->Unknown role: " + user.roles());
         }
     }
 
+    //////////////////////////////////////////////////////////////
+    // REGISTER
+    //////////////////////////////////////////////////////////////
+
     private void register() {
-        System.out.println("\n=== REGISTER ===");
+        System.out.println("\n==========================REGISTER==========================");
+
+        // Ask for the details
         System.out.print("Enter the new username: ");
         String name = scanner.nextLine().trim();
         System.out.print("Enter the new email: ");
@@ -93,15 +112,17 @@ public class Authentication {
         String password = scanner.nextLine().trim();
 
         if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
-            System.out.println("Name, email and password are required.");
+            System.out.println("->Name, email and password are required.");
             return;
         }
 
+        // No duplicate emails
         if (userDao.emailExists(email, -1)) {
-            System.out.println("That email is already registered.");
+            System.out.println("->That email is already registered.");
             return;
         }
 
+        // Pick the role
         System.out.print("Select Role [1] FRONT DESK | [2] ADMIN | [3] CUSTOMER: ");
         String roleChoice = scanner.nextLine().trim();
 
@@ -113,14 +134,15 @@ public class Authentication {
         } else if (roleChoice.equals("3")) {
             roles = "CUSTOMER";
         } else {
-            System.out.println("Invalid role selection");
+            System.out.println("->Invalid role selection.");
             return;
         }
 
+        // Save as PENDING (waits for admin approval)
         if (userDao.registerUser(name, email, password, roles)) {
             // The first admin approves themselves so someone can approve everyone else
             if (roles.equals("ADMIN") && userDao.activateIfFirstAdmin(email)) {
-                System.out.println("You are the first admin, so your account is already APPROVED. You can log in now.");
+                System.out.println("->You are the first admin, so your account is already APPROVED. You can log in now.");
             }
         }
     }
