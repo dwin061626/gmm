@@ -16,9 +16,7 @@ public class Authentication {
         this.userDao = userDao;
     }
 
-    //////////////////////////////////////////////////////////////
-    // START MENU
-    //////////////////////////////////////////////////////////////
+
 
     public void start() {
         boolean running = true;
@@ -49,9 +47,7 @@ public class Authentication {
         }
     }
 
-    //////////////////////////////////////////////////////////////
-    // LOGIN
-    //////////////////////////////////////////////////////////////
+
 
     private void login() {
         System.out.println("\n===========================LOGIN============================");
@@ -77,9 +73,7 @@ public class Authentication {
         routeByRole(user);
     }
 
-    //////////////////////////////////////////////////////////////
-    // ROLE ROUTING
-    //////////////////////////////////////////////////////////////
+
 
     // Sends each logged-in user to their role's menu
     private void routeByRole(User user) {
@@ -96,9 +90,7 @@ public class Authentication {
         }
     }
 
-    //////////////////////////////////////////////////////////////
-    // REGISTER
-    //////////////////////////////////////////////////////////////
+
 
     private void register() {
         System.out.println("\n==========================REGISTER==========================");
@@ -122,16 +114,14 @@ public class Authentication {
             return;
         }
 
-        // Pick the role
-        System.out.print("Select Role [1] FRONT DESK | [2] ADMIN | [3] CUSTOMER: ");
+        // Pick the role (the admin is a fixed account, so it can't be registered)
+        System.out.print("Select Role [1] FRONT DESK | [2] CUSTOMER: ");
         String roleChoice = scanner.nextLine().trim();
 
         String roles;
         if (roleChoice.equals("1")) {
             roles = "FRONT DESK";
         } else if (roleChoice.equals("2")) {
-            roles = "ADMIN";
-        } else if (roleChoice.equals("3")) {
             roles = "CUSTOMER";
         } else {
             System.out.println("->Invalid role selection.");
@@ -139,11 +129,6 @@ public class Authentication {
         }
 
         // Save as PENDING (waits for admin approval)
-        if (userDao.registerUser(name, email, password, roles)) {
-            // The first admin approves themselves so someone can approve everyone else
-            if (roles.equals("ADMIN") && userDao.activateIfFirstAdmin(email)) {
-                System.out.println("->You are the first admin, so your account is already APPROVED. You can log in now.");
-            }
-        }
+        userDao.registerUser(name, email, password, roles);
     }
 }

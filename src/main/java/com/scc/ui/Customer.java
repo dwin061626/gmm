@@ -19,9 +19,6 @@ public class Customer {
         this.userDao = userDao;
     }
 
-    //////////////////////////////////////////////////////////////
-    // CUSTOMER DASHBOARD
-    //////////////////////////////////////////////////////////////
 
     public void display(User customer) {
         boolean loggedIn = true;
@@ -57,9 +54,7 @@ public class Customer {
         }
     }
 
-    //////////////////////////////////////////////////////////////
-    // VIEW PLANS
-    //////////////////////////////////////////////////////////////
+
 
     private void viewPlans() {
         System.out.println("\n=====================SUBSCRIPTION PLANS=====================");
@@ -71,9 +66,7 @@ public class Customer {
         System.out.println("+-----+------------+-----------------+");
     }
 
-    //////////////////////////////////////////////////////////////
-    // APPLY SUBSCRIPTION
-    //////////////////////////////////////////////////////////////
+
 
     private void applySubscription(User customer) {
         System.out.println("\n=====================APPLY SUBSCRIPTION=====================");
@@ -99,7 +92,13 @@ public class Customer {
 
         // 2. Take the payment
         System.out.print("Enter Payment Amount: ");
-        double paid = Double.parseDouble(scanner.nextLine().trim());
+        double paid;
+        try {
+            paid = Double.parseDouble(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("->Invalid amount. Payment cancelled.");
+            return;
+        }
 
         if (paid < price) {
             System.out.println("->Insufficient payment.");

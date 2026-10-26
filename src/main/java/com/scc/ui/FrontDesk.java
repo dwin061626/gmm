@@ -26,9 +26,7 @@ public class FrontDesk {
         this.userDao = userDao;
     }
 
-    //////////////////////////////////////////////////////////////
-    // FRONT DESK DASHBOARD
-    //////////////////////////////////////////////////////////////
+
 
     public void display(User frontDesk) {
         boolean loggedIn = true;
@@ -72,9 +70,7 @@ public class FrontDesk {
         }
     }
 
-    //////////////////////////////////////////////////////////////
-    // VIEW MEMBERS
-    //////////////////////////////////////////////////////////////
+
 
     private void printMemberTable(List<User> users) {
         System.out.println("+-------+-----------------+--------------+------------+");
@@ -100,16 +96,20 @@ public class FrontDesk {
         }
     }
 
-    //////////////////////////////////////////////////////////////
-    // PROCESS PAYMENT
-    //////////////////////////////////////////////////////////////
+
 
     private void processPayment() {
         viewMembers();
 
         // 1. Pick the member
         System.out.print("\nEnter Member ID (or 0 to cancel): ");
-        int id = Integer.parseInt(scanner.nextLine().trim());
+        int id;
+        try {
+            id = Integer.parseInt(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("->Invalid input. Please enter a number.");
+            return;
+        }
 
         if (id == 0) {
             System.out.println("->Payment cancelled.");
@@ -148,7 +148,13 @@ public class FrontDesk {
 
         // 3. Take the payment
         System.out.print("Enter Payment Amount: ");
-        double paid = Double.parseDouble(scanner.nextLine().trim());
+        double paid;
+        try {
+            paid = Double.parseDouble(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("->Invalid amount. Payment cancelled.");
+            return;
+        }
 
         if (paid < price) {
             System.out.println("->Insufficient payment.");
@@ -174,9 +180,7 @@ public class FrontDesk {
         System.out.println("->PAYMENT PROCESSED SUCCESSFULLY!");
     }
 
-    //////////////////////////////////////////////////////////////
-    // PAYMENT HISTORY
-    //////////////////////////////////////////////////////////////
+
 
     private void viewPayments() {
         System.out.println("\n======================PAYMENT HISTORY=======================");
@@ -201,9 +205,7 @@ public class FrontDesk {
         System.out.println("+-------+-------+-----------------+----------+-----------+------------+------------+");
     }
 
-    //////////////////////////////////////////////////////////////
-    // INCOME SUMMARY
-    //////////////////////////////////////////////////////////////
+
 
     private void incomeSummary() {
         String today = LocalDate.now().toString();

@@ -11,31 +11,17 @@ import java.util.List;
 
 public class UserDao {
 
-    // Creates a default admin only if there is no admin in the database yet
-    public void defaultAdminGenerator() {
-        String checkSql = "SELECT COUNT(*) FROM users WHERE roles = ?";
-        String insertSql = "INSERT INTO users(name, email, password, roles, status) VALUES(?, ?, ?, ?, ?)";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement check = conn.prepareStatement(checkSql)) {
 
-            check.setString(1, "ADMIN");
-            try (ResultSet rs = check.executeQuery()) {
-                if (rs.next() && rs.getInt(1) == 0) {
-                    try (PreparedStatement ins = conn.prepareStatement(insertSql)) {
-                        ins.setString(1, "admin");
-                        ins.setString(2, "admin@gmail.com");
-                        ins.setString(3, "admin123");
-                        ins.setString(4, "ADMIN");
-                        ins.setString(5, "APPROVED");
-                        ins.executeUpdate();
-                    }
-                    System.out.println("-> Default Admin created (Email: admin@gmail.com | Password: admin123)");
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error seeding default admin: " + e.getMessage());
-        }
+    // Maps the current row of a ResultSet to a User
+    private User mapUser(ResultSet rs) throws SQLException {
+        return new User(
+                rs.getInt("u_id"),
+                rs.getString("name"),
+                rs.getString("email"),
+                rs.getString("password"),
+                rs.getString("roles"),
+                rs.getString("status"));
     }
 
     public boolean registerUser(String name, String email, String password, String roles) {
@@ -65,71 +51,6 @@ public class UserDao {
         return false;
     }
 
-    // Maps the current row of a ResultSet to a User
-    private User mapUser(ResultSet rs) throws SQLException {
-        return new User(
-                rs.getInt("u_id"),
-                rs.getString("name"),
-                rs.getString("email"),
-                rs.getString("password"),
-                rs.getString("roles"),
-                rs.getString("status"));
-    }
-
-    public List<User> getAllUsers() {
-        List<User> users = new ArrayList<>();
-        String sql = "SELECT u_id, name, email, password, roles, status FROM users ORDER BY u_id";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-
-            while (rs.next()) {
-                users.add(mapUser(rs));
-            }
-        } catch (SQLException e) {
-            System.err.println("Could not load users: " + e.getMessage());
-        }
-        return users;
-    }
-
-    // Returns null if not found
-    public User getUserById(int id) {
-        String sql = "SELECT u_id, name, email, password, roles, status FROM users WHERE u_id = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, id);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) return mapUser(rs);
-            }
-        } catch (SQLException e) {
-            System.err.println("Could not find user: " + e.getMessage());
-        }
-        return null;
-    }
-
-    // Admin-created user with an explicit status (e.g. APPROVED, no approval needed)
-    public boolean createUser(String name, String email, String password, String roles, String status) {
-        String sql = "INSERT INTO users (name, password, email, roles, status) VALUES (?, ?, ?, ?, ?)";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, name);
-            pstmt.setString(2, password);
-            pstmt.setString(3, email);
-            pstmt.setString(4, roles.toUpperCase());
-            pstmt.setString(5, status.toUpperCase());
-            return pstmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Create user failed: " + e.getMessage());
-            return false;
-        }
-    }
-
     // True if another user (any id except excludeId) already uses this email.
     // Pass -1 as excludeId when creating a new user.
     public boolean emailExists(String email, int excludeId) {
@@ -145,41 +66,6 @@ public class UserDao {
             }
         } catch (SQLException e) {
             System.err.println("Email check failed: " + e.getMessage());
-            return false;
-        }
-    }
-
-    public boolean updateUser(User u) {
-        String sql = "UPDATE users SET name = ?, email = ?, password = ?, roles = ?, status = ? WHERE u_id = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, u.name());
-            pstmt.setString(2, u.email());
-            pstmt.setString(3, u.password());
-            pstmt.setString(4, u.roles().toUpperCase());
-            pstmt.setString(5, u.status().toUpperCase());
-            pstmt.setInt(6, u.u_id());
-            return pstmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Update user failed: " + e.getMessage());
-            return false;
-        }
-    }
-
-    public boolean deleteUser(int id) {
-        String sql = "DELETE FROM users WHERE u_id = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Delete user failed: " + e.getMessage());
             return false;
         }
     }
@@ -201,6 +87,52 @@ public class UserDao {
             System.err.println("Login failed: " + e.getMessage());
         }
         return null;
+    }
+
+
+
+    // Creates a default admin only if there is no admin in the database yet
+    public void defaultAdminGenerator() {
+        String checkSql = "SELECT COUNT(*) FROM users WHERE roles = ?";
+        String insertSql = "INSERT INTO users(name, email, password, roles, status) VALUES('admin', 'admin', 'admin123', 'ADMIN', 'APPROVED')";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement check = conn.prepareStatement(checkSql)) {
+
+            check.setString(1, "ADMIN");
+            try (ResultSet rs = check.executeQuery()) {
+                if (rs.next() && rs.getInt(1) == 0) {
+                    try (PreparedStatement ins = conn.prepareStatement(insertSql)) {
+                        ins.setString(1, "admin");
+                        ins.setString(2, "admin");
+                        ins.setString(3, "admin123");
+                        ins.setString(4, "ADMIN");
+                        ins.setString(5, "APPROVED");
+                        ins.executeUpdate();
+                    }
+                    System.out.println("-> Default Admin created (Email: admin@gmail.com | Password: admin123)");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error seeding default admin: " + e.getMessage());
+        }
+    }
+
+    public List<User> getAllUsers() {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT u_id, name, email, password, roles, status FROM users ORDER BY u_id";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                users.add(mapUser(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("Could not load users: " + e.getMessage());
+        }
+        return users;
     }
 
     // Returns all users with status = PENDING, across all roles
@@ -241,25 +173,105 @@ public class UserDao {
         }
     }
 
-    // First-admin bootstrap: if NO approved admin exists yet, approve this admin account
-    // so someone can log in and approve everyone else. Returns true if it was approved.
-    public boolean activateIfFirstAdmin(String email) {
-        String sql = "UPDATE users SET status = ? " +
-                "WHERE LOWER(email) = LOWER(?) AND roles = ? " +
-                "AND NOT EXISTS (SELECT 1 FROM users WHERE roles = ? AND status = ?)";
+
+
+    // Changes only the role and the status of one user
+    public boolean updateUserAndStatus(int userId, String newRoles, String newStatus) {
+
+        String sql = "UPDATE users SET roles = '?', status = '?' WHERE u_id = ?";
+
+        try (
+                Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, newRoles.toUpperCase());
+            pstmt.setString(2, newStatus.toUpperCase());
+            pstmt.setInt(3, userId);
+
+            int rowsUpdated = pstmt.executeUpdate();
+            if (rowsUpdated > 0) {
+                System.out.println(" -> User ID: " + userId + " updated successfully!");
+                return true;
+
+            } else {
+                System.out.println(" -> User ID not found.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating user: " + e.getMessage());
+        }
+        return false;
+    }
+
+
+
+    // Returns null if not found
+    public User getUserById(int id) {
+        String sql = "SELECT u_id, name, email, password, roles, status FROM users WHERE u_id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, "APPROVED");
-            pstmt.setString(2, email);
-            pstmt.setString(3, "ADMIN");
-            pstmt.setString(4, "ADMIN");
-            pstmt.setString(5, "APPROVED");
+            pstmt.setInt(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) return mapUser(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("Could not find user: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // Admin-created user with an explicit status (e.g. APPROVED, no approval needed)
+    public boolean createUser(String name, String email, String password, String roles, String status) {
+        String sql = "INSERT INTO users (name, password, email, roles, status) VALUES (?, ?, ?, ?, ?)";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, name);
+            pstmt.setString(2, password);
+            pstmt.setString(3, email);
+            pstmt.setString(4, roles.toUpperCase());
+            pstmt.setString(5, status.toUpperCase());
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Could not approve first admin: " + e.getMessage());
+            System.err.println("Create user failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean updateUser(User u) {
+        String sql = "UPDATE users SET name = ?, email = ?, password = ?, roles = ?, status = ? WHERE u_id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, u.name());
+            pstmt.setString(2, u.email());
+            pstmt.setString(3, u.password());
+            pstmt.setString(4, u.roles().toUpperCase());
+            pstmt.setString(5, u.status().toUpperCase());
+            pstmt.setInt(6, u.u_id());
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Update user failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean deleteUser(int id) {
+        String sql = "DELETE FROM users WHERE u_id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Delete user failed: " + e.getMessage());
             return false;
         }
     }
