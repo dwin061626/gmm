@@ -17,7 +17,9 @@ public class Admin {
         this.userDao = userDao;
     }
 
-
+    //////////////////////////////////////////////////////////////
+    // ADMIN DASHBOARD
+    //////////////////////////////////////////////////////////////
 
     public void display(User admin) {
         boolean loggedIn = true;
@@ -68,7 +70,6 @@ public class Admin {
             }
         }
     }
-
 
 
     // Formatted table for any list of users, with a title above it
@@ -204,19 +205,25 @@ public class Admin {
         }
     }
 
-    // Keeps asking until a valid role is typed. Returns null if 0 is entered to cancel.
+    // Keeps asking until a valid role is chosen (1, 2, 3 or the role name). Returns null if 0 is entered to cancel.
     private String readValidRole() {
         while (true) {
-            System.out.print("Enter Role (FRONT DESK / ADMIN / CUSTOMER) [0 to cancel]: ");
+            System.out.print("Enter Role [1] FRONT DESK [2] ADMIN [3] CUSTOMER [0 to cancel]: ");
             String role = scanner.nextLine().trim().toUpperCase();
 
             if (role.equals("0") || role.equals("CANCEL")) {
                 return null;
             }
-            if (role.equals("FRONT DESK") || role.equals("ADMIN") || role.equals("CUSTOMER")) {
-                return role;
+            if (role.equals("1") || role.equals("FRONT DESK")) {
+                return "FRONT DESK";
             }
-            System.out.println("-> [ERROR] Invalid role. Must be FRONT DESK, ADMIN or CUSTOMER.");
+            if (role.equals("2") || role.equals("ADMIN")) {
+                return "ADMIN";
+            }
+            if (role.equals("3") || role.equals("CUSTOMER")) {
+                return "CUSTOMER";
+            }
+            System.out.println("-> [ERROR] Invalid role. Must be 1 (FRONT DESK), 2 (ADMIN) or 3 (CUSTOMER).");
         }
     }
 
