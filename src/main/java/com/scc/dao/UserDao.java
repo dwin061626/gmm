@@ -6,12 +6,15 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserDao {
 
-
+    //////////////////////////////////////////////////////////////
+    // DELIVERABLE 2: REGISTER & LOGIN
+    //////////////////////////////////////////////////////////////
 
     // Maps the current row of a ResultSet to a User
     private User mapUser(ResultSet rs) throws SQLException {
@@ -89,29 +92,28 @@ public class UserDao {
         return null;
     }
 
-
+    //////////////////////////////////////////////////////////////
+    // DELIVERABLE 5: ADMIN APPROVAL (default admin, view users, approve)
+    //////////////////////////////////////////////////////////////
 
     // Creates a default admin only if there is no admin in the database yet
     public void defaultAdminGenerator() {
-        String checkSql = "SELECT COUNT(*) FROM users WHERE roles = ?";
-        String insertSql = "INSERT INTO users(name, email, password, roles, status) VALUES('admin', 'admin', 'admin123', 'ADMIN', 'APPROVED')";
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            defaultAdminGenerator(conn);
+        } catch (SQLException e) {
+            System.err.println("Error seeding default admin: " + e.getMessage());
+        }
+    }
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement check = conn.prepareStatement(checkSql)) {
+    public void defaultAdminGenerator(Connection conn) {
+        String checkSql = "SELECT COUNT(*) FROM users WHERE roles = 'ADMIN'";
+        String insertSql = "INSERT INTO users(name, email, password, roles, status) VALUES('admin','admin','admin123','ADMIN','APPROVED')";
 
-            check.setString(1, "ADMIN");
-            try (ResultSet rs = check.executeQuery()) {
-                if (rs.next() && rs.getInt(1) == 0) {
-                    try (PreparedStatement ins = conn.prepareStatement(insertSql)) {
-                        ins.setString(1, "admin");
-                        ins.setString(2, "admin");
-                        ins.setString(3, "admin123");
-                        ins.setString(4, "ADMIN");
-                        ins.setString(5, "APPROVED");
-                        ins.executeUpdate();
-                    }
-                    System.out.println("-> Default Admin created (Email: admin@gmail.com | Password: admin123)");
-                }
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(checkSql)) {
+            if (rs.next() && rs.getInt(1) == 0) {
+                stmt.executeUpdate(insertSql);
+                System.out.println(" -> Default Admin created <-");
             }
         } catch (SQLException e) {
             System.err.println("Error seeding default admin: " + e.getMessage());
@@ -173,12 +175,14 @@ public class UserDao {
         }
     }
 
-
+    //////////////////////////////////////////////////////////////
+    // DELIVERABLE 7: UPDATE ROLE & STATUS
+    //////////////////////////////////////////////////////////////
 
     // Changes only the role and the status of one user
     public boolean updateUserAndStatus(int userId, String newRoles, String newStatus) {
 
-        String sql = "UPDATE users SET roles = '?', status = '?' WHERE u_id = ?";
+        String sql = "UPDATE users SET roles = ?, status = ? WHERE u_id = ?";
 
         try (
                 Connection conn = DatabaseConnection.getConnection();
@@ -202,7 +206,9 @@ public class UserDao {
         return false;
     }
 
-
+    //////////////////////////////////////////////////////////////
+    // EXTRA (NOT IN A DELIVERABLE): ADD, FIND, UPDATE & DELETE USER
+    //////////////////////////////////////////////////////////////
 
     // Returns null if not found
     public User getUserById(int id) {
