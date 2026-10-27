@@ -12,9 +12,6 @@ import java.util.List;
 
 public class UserDao {
 
-    //////////////////////////////////////////////////////////////
-    // DELIVERABLE 2: REGISTER & LOGIN
-    //////////////////////////////////////////////////////////////
 
     // Maps the current row of a ResultSet to a User
     private User mapUser(ResultSet rs) throws SQLException {
@@ -92,9 +89,7 @@ public class UserDao {
         return null;
     }
 
-    //////////////////////////////////////////////////////////////
-    // DELIVERABLE 5: ADMIN APPROVAL (default admin, view users, approve)
-    //////////////////////////////////////////////////////////////
+
 
     // Creates a default admin only if there is no admin in the database yet
     public void defaultAdminGenerator() {
@@ -175,9 +170,7 @@ public class UserDao {
         }
     }
 
-    //////////////////////////////////////////////////////////////
-    // DELIVERABLE 7: UPDATE ROLE & STATUS
-    //////////////////////////////////////////////////////////////
+
 
     // Changes only the role and the status of one user
     public boolean updateUserAndStatus(int userId, String newRoles, String newStatus) {
@@ -206,9 +199,7 @@ public class UserDao {
         return false;
     }
 
-    //////////////////////////////////////////////////////////////
-    // EXTRA (NOT IN A DELIVERABLE): ADD, FIND, UPDATE & DELETE USER
-    //////////////////////////////////////////////////////////////
+
 
     // Returns null if not found
     public User getUserById(int id) {
